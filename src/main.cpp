@@ -4,10 +4,11 @@
 int main(int argc, char const *argv[])
 {
     Application app;
-    while (app.Update())
+
+    do
     {
         app.Render();
-    }
-    
+    } while (app.Update());
+
     return 0;
 }

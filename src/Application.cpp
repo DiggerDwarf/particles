@@ -1,12 +1,39 @@
 #include "Application.hpp"
+#include <random>
+
+#define DOWNSCALE_FACTOR    10
 
 Application::Application()
-    : m_window(sf::VideoMode::getDesktopMode(), "particles", sf::Style::None)
+    : m_window(sf::VideoMode::getDesktopMode(), "particles", sf::Style::None), m_spread(0.02F)
 {
-    // this->m_window.setFramerateLimit(60);
-    time_t seed = time(nullptr);
-    std::cout << "Seed : " << seed << '\n';
-    srand(seed);
+    this->m_fragShader.loadFromFile("src/frag.glsl", sf::Shader::Type::Fragment);
+
+    sf::Vector2u winSize = this->m_window.getSize();
+
+    this->m_renderBuffer.create(winSize.x / DOWNSCALE_FACTOR, winSize.y / DOWNSCALE_FACTOR);
+    this->m_renderBuffer.setSmooth(true);
+
+    this->m_window.setVerticalSyncEnabled(true);
+
+    srand(time(nullptr));
+
+    for (size_t i = 0; i < 32; i++)
+    {
+        for (size_t j = 0; j < 16; j++)
+        {
+            Particle newParticle;
+            newParticle.pos = sf::Vector2f(i*50, j*50);
+            newParticle.radius = 10.F + 5.F*rand()/RAND_MAX;
+            // newParticle.color = sf::Color(rand()%255, rand()%255, rand()%255);
+            newParticle.velocity = sf::Vector2f(0, 0);
+            this->m_particles.push_back(newParticle);
+        }
+    }
+}
+
+Application::~Application()
+{
+    this->m_window.close();
 }
 
 bool Application::Update()
@@ -28,8 +55,8 @@ bool Application::handle_inputs()
         {
         case sf::Event::Closed:
             return false;
-        case sf::Event::LostFocus:
-            return false;
+        // case sf::Event::LostFocus:
+        //     return false;
         
         case sf::Event::KeyPressed: {
             switch (event.key.code)
@@ -37,30 +64,16 @@ bool Application::handle_inputs()
             case sf::Keyboard::Escape:
                 return false;
             
+            case sf::Keyboard::Up:
+                this->m_spread *= 1.5;
+                break;
+            case sf::Keyboard::Down:
+                this->m_spread /= 1.5;
+                break;
+
             default:
                 break;
             }
-            break;
-        }
-        case sf::Event::MouseWheelMoved: {
-            int id = rand();
-            Particle newObj = {};
-            newObj.radius = id%5 + 10;
-            newObj.position = static_cast<sf::Vector2f>(sf::Mouse::getPosition(this->m_window));
-            // newObj.position = {0, 0};
-            newObj.prevPosition = newObj.position - sf::Vector2f(id%6 - 3, id%7 - 3) * UNIT_DISTANCE / 2.F;
-            
-            newObj.color.r = id%255;
-            newObj.color.g = id%254;
-            newObj.color.b = id%253;
-            newObj.color.a = 255;
-
-            newObj.lifetime = (rand() % 150) / 10;
-            newObj.age = 0;
-            
-            this->m_particles.push_back(newObj);
-            // std::printf("id: %5u     pos: %4.f,%4.f     vel: %2.f,%2.f      rad: %2.f\n",
-            // id, newObj.position.x, newObj.position.y, newObj.velocity.x, newObj.velocity.y, newObj.radius);
             break;
         }
 
@@ -78,75 +91,57 @@ void Application::update_particles(float deltaTime)
     sf::Vector2f winSize(this->m_window.getSize());
     for (std::vector<Particle>::iterator obj = this->m_particles.begin(); obj != this->m_particles.end(); obj++)
     {
-        sf::Vector2f newPos = 2.F*obj->position - obj->prevPosition;
-        obj->prevPosition = obj->position;
-        obj->position = newPos;
-        obj->position.y += 5 * UNIT_DISTANCE * deltaTime;
+        obj->velocity.y += 5*UNIT_DISTANCE*deltaTime;
 
-        // Simple despawn timer
-        // obj->age += deltaTime;
-        // if (obj->age > obj->lifetime)
-        // {
-        //     this->m_particles.erase(obj);
-        //     obj--;
-        //     continue;
-        // }
-        // obj->color.a = 255 * (1-(obj->age/obj->lifetime));
-        
-        // warparound accounting for radius of the particle
-        if ((obj->position.x < obj->radius) || (obj->position.x > winSize.x - obj->radius))
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) || sf::Mouse::isButtonPressed(sf::Mouse::Right))
         {
-            clamp(obj->position.x, obj->radius, winSize.x - obj->radius);
-            obj->prevPosition.x = 2*obj->position.x - obj->prevPosition.x;
-        }
-        if ((obj->position.y < obj->radius) || (obj->position.y > winSize.y - obj->radius))
-        {
-            clamp(obj->position.y, obj->radius, winSize.y - obj->radius);
-            obj->prevPosition.y = 2*obj->position.y - obj->prevPosition.y;
+            const float maxInteractDistance = 20; // in terms of unit distances
+            sf::Vector2f relative = obj->pos - static_cast<sf::Vector2f>(sf::Mouse::getPosition(this->m_window));
+            float distance = length(relative) / UNIT_DISTANCE;
+            if (distance < maxInteractDistance)
+            {
+                float t = distance / maxInteractDistance;
+                float interactStrength = t*t*(2*t - 3) + 1;
+                interactStrength *= sf::Mouse::isButtonPressed(sf::Mouse::Left) ? UNIT_DISTANCE*10 : -UNIT_DISTANCE*10;
+                // interactStrength *= std::sqrt(maxInteractDistance);
+                obj->velocity += (relative / distance) * interactStrength * deltaTime;
+            }
         }
 
         for (std::vector<Particle>::iterator otherObj = (++obj)--; otherObj != this->m_particles.end(); otherObj++)
         {
-            // sf::Vector2f direction = obj->position - otherObj->position;
-            // float overlapDistance = length(direction);
-            // if (overlapDistance <= obj->radius + otherObj->radius)
-            // {
-            //     direction /= overlapDistance;
-
-            //     obj     ->velocity -= 2.F * dot(direction, obj     ->velocity) * direction;
-            //     otherObj->velocity -= 2.F * dot(direction, otherObj->velocity) * direction;
-
-            //     obj     ->position += direction * (overlapDistance/2);
-            //     otherObj->position -= direction * (overlapDistance/2);
-            // }
-
-            const float maxInteractDistance = 20; // in terms of unit distances
-            sf::Vector2f relative = obj->position - otherObj->position;
+            const float maxInteractDistance = 5; // in terms of unit distances
+            sf::Vector2f relative = obj->pos - otherObj->pos;
             float distance = length(relative) / UNIT_DISTANCE;
-            if (distance > maxInteractDistance) continue;
-            float t = std::min(std::max(distance, 0.F), maxInteractDistance) / maxInteractDistance;
-            float interactStrength = t*t*(2*t - 3) + 1;
-            // interactStrength *= std::sqrt(maxInteractDistance);
-            obj->position += (relative / distance) * interactStrength * deltaTime;
-            otherObj->position -= (relative / distance) * interactStrength * deltaTime;
+            if (distance < maxInteractDistance)
+            {
+                float t = distance / maxInteractDistance;
+                float interactStrength = (t*t*(2*t - 3) + 1) * 5.F;
+                // interactStrength *= std::sqrt(maxInteractDistance);
+                obj->     velocity += (relative / distance) * interactStrength * deltaTime;
+                otherObj->velocity -= (relative / distance) * interactStrength * deltaTime;
+            }
+            
         }
         
 
 
+        obj->pos += obj->velocity;
         
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) || sf::Mouse::isButtonPressed(sf::Mouse::Right))
+        
+        // bbox accounting for radius of the particle
+        if ((obj->pos.x < obj->radius) || (obj->pos.x > winSize.x - obj->radius))
         {
-            const float maxInteractDistance = 20; // in terms of unit distances
-            sf::Vector2f relative = obj->position - static_cast<sf::Vector2f>(sf::Mouse::getPosition(this->m_window));
-            float distance = length(relative) / UNIT_DISTANCE;
-            if (distance > maxInteractDistance) continue;
-            float t = std::min(std::max(distance, 0.F), maxInteractDistance) / maxInteractDistance;
-            float interactStrength = t*t*(2*t - 3) + 1;
-            interactStrength *= sf::Mouse::isButtonPressed(sf::Mouse::Left) ? UNIT_DISTANCE : -UNIT_DISTANCE;
-            // interactStrength *= std::sqrt(maxInteractDistance);
-            obj->position += (relative / distance) * interactStrength * deltaTime;
+            clamp(obj->pos.x, obj->radius, winSize.x - obj->radius);
+            // obj->velocity.x = 2*obj->pos.x - obj->velocity.x;
+            obj->velocity.x *= -0.9;
         }
-        
+        if ((obj->pos.y < obj->radius) || (obj->pos.y > winSize.y - obj->radius))
+        {
+            clamp(obj->pos.y, obj->radius, winSize.y - obj->radius);
+            // obj->velocity.y = 2*obj->pos.y - obj->velocity.y;
+            obj->velocity.y *= -0.9;
+        }
     }
     
 }
@@ -174,13 +169,41 @@ void Application::Render()
 
 void Application::draw_particles()
 {
-    sf::CircleShape dot;
-    // dot.setPointCount(10);
-    for (const Particle& obj : this->m_particles)
+    // sf::CircleShape dot;
+    // // dot.setPointCount(10);
+    // for (const Particle& obj : this->m_particles)
+    // {
+    //     dot.setRadius(obj.radius);
+    //     dot.setFillColor(obj.color);
+    //     dot.setPosition(obj.pos - sf::Vector2f(obj.radius, obj.radius));
+    //     m_window.draw(dot);
+    // }
+
+    sf::Vector2u windowSize = this->m_window.getSize();
+
+    sf::ConvexShape quad(4);
+    quad.setPoint(0, sf::Vector2f(0,            0           ));
+    quad.setPoint(1, sf::Vector2f(windowSize.x, 0           ));
+    quad.setPoint(2, sf::Vector2f(windowSize.x, windowSize.y));
+    quad.setPoint(3, sf::Vector2f(0,            windowSize.y));
+
+    sf::Glsl::Vec2* positions = new sf::Glsl::Vec2[1024];
+    for (size_t i = 0; i < 512; i++)
     {
-        dot.setRadius(obj.radius);
-        dot.setFillColor(obj.color);
-        dot.setPosition(obj.position - sf::Vector2f(obj.radius, obj.radius));
-        m_window.draw(dot);
+        positions[i] = this->m_particles[i].pos / (float)DOWNSCALE_FACTOR;
     }
+
+    this->m_fragShader.setUniform("spread", this->m_spread);
+    this->m_fragShader.setUniformArray("positions", positions, 512);
+    this->m_fragShader.setUniform("u_resolution", sf::Glsl::Vec2(windowSize/(unsigned int)DOWNSCALE_FACTOR));
+
+    this->m_window.clear();
+    this->m_renderBuffer.clear();
+    this->m_renderBuffer.draw(quad, sf::RenderStates(&this->m_fragShader));
+    this->m_renderBuffer.display();
+
+    quad.setTexture(&this->m_renderBuffer.getTexture(), true);
+
+    this->m_window.draw(quad);
+    this->m_window.display();
 }

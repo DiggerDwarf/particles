@@ -13,13 +13,14 @@
 #define UNIT_DISTANCE 20.F
 
 typedef struct {
-    sf::Vector2f    position;
-    sf::Vector2f    prevPosition;
+    sf::Vector2f    pos;
+    sf::Vector2f    velocity;
     float           radius;
-    sf::Color       color;
-    float lifetime;
-    float age;
+    // sf::Color       color;
+    // float lifetime;
+    // float age;
 } Particle;
+
 
 
 class Application
@@ -29,8 +30,14 @@ private:
     std::vector<Particle>   m_particles;
     sf::Clock               m_clock;
     sf::Time                m_runtime;
+    sf::Shader              m_fragShader;
+    sf::RenderTexture       m_renderBuffer;
+    float                   m_spread;   // maybe remove later
+    // sf::Font                m_font;
+    // bool                    m_canUseFont;
 public:
     Application();
+    ~Application();
 
     // Application update wrapper function. Output is wether the app can keep running.
     bool Update();
