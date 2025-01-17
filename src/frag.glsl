@@ -7,6 +7,8 @@
 #define TWO_PI			6.283185307179586
 #define ONE_TWO_PI      0.159154943091895
 
+buffer vec2 abc[512];
+
 uniform vec2 positions[512];
 uniform vec2 u_resolution;
 uniform float spread;

@@ -3,8 +3,12 @@
 
 #include <vector>
 #include <random>
+
 #define SFML_STATIC
 #include <SFML/Graphics.hpp>
+
+#define GLEW_STATIC
+#include <GL/glew.h>
 
 #include <iostream>
 #include <cmath>

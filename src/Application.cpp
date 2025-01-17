@@ -1,11 +1,19 @@
 #include "Application.hpp"
 #include <random>
+#include <OpenGL.hpp>
+#include <optional>
 
-#define DOWNSCALE_FACTOR    10
+#define DOWNSCALE_FACTOR    5
 
 Application::Application()
-    : m_window(sf::VideoMode::getDesktopMode(), "particles", sf::Style::None), m_spread(0.02F)
+    : m_spread(0.02F)
 {
+    sf::ContextSettings contextSettings;
+    contextSettings.majorVersion = 4;
+    contextSettings.minorVersion = 3;
+    this->m_window.create(sf::VideoMode::getDesktopMode(), "particles", sf::Style::None, contextSettings);
+
+    
     this->m_fragShader.loadFromFile("src/frag.glsl", sf::Shader::Type::Fragment);
 
     sf::Vector2u winSize = this->m_window.getSize();
@@ -102,7 +110,7 @@ void Application::update_particles(float deltaTime)
             {
                 float t = distance / maxInteractDistance;
                 float interactStrength = t*t*(2*t - 3) + 1;
-                interactStrength *= sf::Mouse::isButtonPressed(sf::Mouse::Left) ? UNIT_DISTANCE*10 : -UNIT_DISTANCE*10;
+                interactStrength *= sf::Mouse::isButtonPressed(sf::Mouse::Left) ? UNIT_DISTANCE*10 : -UNIT_DISTANCE*2;
                 // interactStrength *= std::sqrt(maxInteractDistance);
                 obj->velocity += (relative / distance) * interactStrength * deltaTime;
             }
@@ -203,6 +211,7 @@ void Application::draw_particles()
     this->m_renderBuffer.display();
 
     quad.setTexture(&this->m_renderBuffer.getTexture(), true);
+
 
     this->m_window.draw(quad);
     this->m_window.display();
