@@ -6,8 +6,8 @@ OBJ 		= $(subst src, build, $(patsubst %.cpp, %.o, $(SRC)))
 DBG 		= 	# debug flags
 
 INCLUDE 	= -I include
-LIB 		= -L lib/SFML_static -L lib/Other -lsfml-graphics-s -lsfml-window-s -lsfml-system-s lib/Other/glew32s.lib -lopengl32 -lfreetype -lwinmm -lgdi32 -lcomdlg32	# this is for static linking SFML
-EXTRA		= -Werror -Wall -Wno-narrowing
+LIB 		= -L lib/SFML_static -L lib/Other -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lglew32 -lopengl32 -lfreetype -lwinmm -lgdi32 -lcomdlg32	# this is for static linking SFML
+EXTRA		= -Werror -Wall -Wno-narrowing -DSFML_STATIC -DGLEW_STATIC
 STATIC  	= -static-libgcc -static-libstdc++ -static 	# for static linking with libgcc and libstdc++ and more
 
 all: link

@@ -4,11 +4,10 @@
 #include <vector>
 #include <random>
 
-#define SFML_STATIC
 #include <SFML/Graphics.hpp>
 
-#define GLEW_STATIC
-#include <GL/glew.h>
+#define COMPUTE_INTEGRATE_SFML
+#include "computeHandler.hpp"
 
 #include <iostream>
 #include <cmath>
@@ -18,8 +17,8 @@
 
 typedef struct {
     sf::Vector2f    pos;
-    sf::Vector2f    velocity;
-    float           radius;
+    // sf::Vector2f    velocity;
+    // float           radius;
     // sf::Color       color;
     // float lifetime;
     // float age;
@@ -31,12 +30,15 @@ class Application
 {
 private:
     sf::RenderWindow        m_window;
-    std::vector<Particle>   m_particles;
+    // std::vector<Particle>   m_particles;
+    Particle                m_particles[512];
     sf::Clock               m_clock;
-    sf::Time                m_runtime;
+    // sf::Time                m_runtime;
     sf::Shader              m_fragShader;
     sf::RenderTexture       m_renderBuffer;
     float                   m_spread;   // maybe remove later
+    ComputeShader           m_computeShader;
+    unsigned int            pBuffer;
     // sf::Font                m_font;
     // bool                    m_canUseFont;
 public:

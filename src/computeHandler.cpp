@@ -20,13 +20,16 @@ ComputeShader compile_compute_shader(const char *code)
         GLint errorLogSize = 0;
         glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &errorLogSize);
 
-        char errorLog[errorLogSize] = {};
+        char* errorLog = new char[errorLogSize+1];
+
         glGetShaderInfoLog(shaderId, errorLogSize, NULL, errorLog);
 
         glDeleteShader(shaderId);
 
         std::cerr << "Error while compiling compute shader [ compile_compute_shader ] :\n";
         std::cerr << errorLog << std::endl;
+
+        delete[] errorLog;
 
         std::exit(1);
     }
@@ -48,7 +51,8 @@ ComputeShader compile_compute_shader(const char *code)
         GLint errorLogSize = 0;
         glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &errorLogSize);
 
-        char errorLog[errorLogSize] = {};
+        char* errorLog = new char[errorLogSize+1];
+
         glGetProgramInfoLog(programId, errorLogSize, NULL, errorLog);
 
         glDeleteProgram(programId);
@@ -56,6 +60,8 @@ ComputeShader compile_compute_shader(const char *code)
 
         std::cerr << "Error while linking compute shader [ compile_compute_shader ] :\n";
         std::cerr << errorLog << std::endl;
+
+        delete[] errorLog;
 
         std::exit(1);
     }
@@ -69,7 +75,7 @@ ComputeShader compile_compute_shader(const char *code)
 
 ComputeShader compile_compute_shader_file(const char *fileName)
 {
-    FILE* file = std::fopen(fileName, "r");
+    FILE* file = std::fopen(fileName, "rb");
 
     if (file == NULL)
     {
@@ -90,20 +96,22 @@ ComputeShader compile_compute_shader_file(const char *fileName)
         std::exit(1);
     }
 
-    char code[fileSize] = {};
+    char code[fileSize+1] = {};
 
     if (std::fseek(file, 0, SEEK_SET) != 0)
     {
         std::cerr << "Error while parsing file [ compile_compute_shader_file(" << fileName << ") ]" << std::endl;
         std::exit(1);
     }
-    if (std::fread(code, 1, fileSize, file) != fileSize)
+    if (std::fread(code, 1, fileSize, file) != static_cast<std::size_t>(fileSize))
     {
         std::cerr << "Error while parsing file [ compile_compute_shader_file(" << fileName << ") ]" << std::endl;
         std::exit(1);
     }
 
-    return compile_compute_shader(code);
+    ComputeShader out = compile_compute_shader(code);
+
+    return out;
 }
 
 GLint get_uniform_location(ComputeShader& shader, const std::string& name)
@@ -230,27 +238,27 @@ void set_uniform(ComputeShader &shader, const std::string &name, bool value0, bo
         glUniform4i(uniformLocation, (int)value0, (int)value1, (int)value2, (int)value3);
 }
 
-void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, const float *values, int arrayLength) {
+void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, const float *values, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform1fv(uniformLocation, arrayLength, values);
 }
-void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, const double *values, int arrayLength) {
+void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, const double *values, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform1dv(uniformLocation, arrayLength, values);
 }
-void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, const int *values, int arrayLength) {
+void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, const int *values, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform1iv(uniformLocation, arrayLength, values);
 }
-void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, const unsigned int *values, int arrayLength) {
+void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, const unsigned int *values, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform1uiv(uniformLocation, arrayLength, values);
 }
-void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, const bool *values, int arrayLength) {
+void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, const bool *values, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
     {
@@ -261,27 +269,27 @@ void set_uniform_array_scalar(ComputeShader &shader, const std::string &name, co
         glUniform1iv(uniformLocation, arrayLength, convertedValues);
     }
 }
-void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, const float *flattenedValues, int arrayLength) {
+void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, const float *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform2fv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, const double *flattenedValues, int arrayLength) {
+void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, const double *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform2dv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, const int *flattenedValues, int arrayLength) {
+void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, const int *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform2iv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, const unsigned int *flattenedValues, int arrayLength) {
+void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, const unsigned int *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform2uiv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, const bool *flattenedValues, int arrayLength) {
+void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, const bool *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
     {
@@ -292,27 +300,27 @@ void set_uniform_array_2_tuple(ComputeShader &shader, const std::string &name, c
         glUniform2iv(uniformLocation, arrayLength, convertedValues);
     }
 }
-void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, const float *flattenedValues, int arrayLength) {
+void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, const float *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform3fv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, const double *flattenedValues, int arrayLength) {
+void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, const double *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform3dv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, const int *flattenedValues, int arrayLength) {
+void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, const int *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform3iv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, const unsigned int *flattenedValues, int arrayLength) {
+void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, const unsigned int *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform3uiv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, const bool *flattenedValues, int arrayLength) {
+void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, const bool *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
     {
@@ -323,27 +331,27 @@ void set_uniform_array_3_tuple(ComputeShader &shader, const std::string &name, c
         glUniform3iv(uniformLocation, arrayLength, convertedValues);
     }
 }
-void set_uniform_array_4_tuple(ComputeShader &shader, const std::string &name, const float *flattenedValues, int arrayLength) {
+void set_uniform_array_4_tuple(ComputeShader &shader, const std::string &name, const float *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform4fv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_4_tuple(ComputeShader &shader, const std::string &name, const double *flattenedValues, int arrayLength) {
+void set_uniform_array_4_tuple(ComputeShader &shader, const std::string &name, const double *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform4dv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_4_tuple(ComputeShader &shader, const std::string &name, const int *flattenedValues, int arrayLength) {
+void set_uniform_array_4_tuple(ComputeShader &shader, const std::string &name, const int *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform4iv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_4_tuple(ComputeShader &shader, const std::string &name, const unsigned int *flattenedValues, int arrayLength) {
+void set_uniform_array_4_tuple(ComputeShader &shader, const std::string &name, const unsigned int *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
         glUniform4uiv(uniformLocation, arrayLength, flattenedValues);
 }
-void set_uniform_array_4_tuple(ComputeShader &shader, const std::string &name, const bool *flattenedValues, int arrayLength) {
+void set_uniform_array_4_tuple(ComputeShader &shader, const std::string &name, const bool *flattenedValues, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (uniformLocation != -1)
     {
@@ -374,7 +382,7 @@ void set_uniform_matrix(ComputeShader &shader, const std::string &name, int x_si
         __computeHandler_matrix_functions_double.at(std::make_pair(x_size, y_size))(uniformLocation, 1, static_cast<GLboolean>(transpose), flattennedValues);
 }
 
-void set_uniform_array_matrix(ComputeShader &shader, const std::string &name, int x_size, int y_size, const float *flattennedValues, bool transpose, int arrayLength) {
+void set_uniform_array_matrix(ComputeShader &shader, const std::string &name, int x_size, int y_size, const float *flattennedValues, bool transpose, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (x_size < 2 || x_size > 4 || y_size < 2 || y_size > 4) {
         std::cerr << "Invalid dimensions for matrix : given " << x_size << 'x' << y_size << " when size must be between 2 and 4." << std::endl;
@@ -383,7 +391,7 @@ void set_uniform_array_matrix(ComputeShader &shader, const std::string &name, in
     if (uniformLocation != -1)
         __computeHandler_matrix_functions_float.at(std::make_pair(x_size, y_size))(uniformLocation, arrayLength, static_cast<GLboolean>(transpose), flattennedValues);
 }
-void set_uniform_array_matrix(ComputeShader &shader, const std::string &name, int x_size, int y_size, const double *flattennedValues, bool transpose, int arrayLength) {
+void set_uniform_array_matrix(ComputeShader &shader, const std::string &name, int x_size, int y_size, const double *flattennedValues, bool transpose, unsigned int arrayLength) {
     GLint uniformLocation = get_uniform_location(shader, name);
     if (x_size < 2 || x_size > 4 || y_size < 2 || y_size > 4) {
         std::cerr << "Invalid dimensions for matrix : given " << x_size << 'x' << y_size << " when size must be between 2 and 4." << std::endl;
@@ -412,14 +420,27 @@ void set_uniform_texture(ComputeShader &shader, const std::string &name, unsigne
 
 #pragma endregion // set_uniform_cluster
 
-void set_buffer(ComputeShader& shader, const void *data, std::size_t size, int bindIndex)
+unsigned int set_buffer(ComputeShader& shader, const void *data, std::size_t size, int bindIndex)
 {
-    glUseProgramObjectARB(shader.m_programId);
+    glUseProgram(shader.m_programId);
 
     GLuint bufferId;
-    glGenBuffersARB(1, &bufferId);
-    glBindBufferARB(GL_SHADER_STORAGE_BUFFER, bufferId);
-    glBufferDataARB(GL_SHADER_STORAGE_BUFFER, size, data, )
+    glGenBuffers(1, &bufferId);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferId);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindIndex, bufferId);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    return bufferId;
+}
+
+void read_buffer(ComputeShader &shader, void *target, unsigned int source, std::size_t offset, std::size_t size)
+{
+    glUseProgram(shader.m_programId);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, source);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, target);
+
 
 }
 
@@ -452,7 +473,7 @@ void execute_compute_shader(const ComputeShader &shader, GLuint x, GLuint y, GLu
     }
 
     std::map<GLint, GLuint>::const_iterator it = shader.m_textureUniformHandles.begin();
-    for (int i = 0; i < shader.m_textureUniformHandles.size(); ++i)
+    for (unsigned int i = 0; i < shader.m_textureUniformHandles.size(); ++i)
     {
         int index = i + 1;
         glUniform1i(it->first, index);
@@ -462,5 +483,14 @@ void execute_compute_shader(const ComputeShader &shader, GLuint x, GLuint y, GLu
     }
 
     glDispatchCompute(x, y, z);
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
+void delete_compute_shader(ComputeShader &shader)
+{
+    glUseProgram(0);
+    glDeleteProgram(shader.m_programId);
+    shader.m_programId = 0;
+    shader.m_uniformLocations.clear();
+    shader.m_textureUniformHandles.clear();
+}

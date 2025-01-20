@@ -1,7 +1,6 @@
 #ifndef utility_hpp_INCLUDED
 #define utility_hpp_INCLUDED
 
-#define SFML_STATIC
 #include <SFML/Graphics.hpp>
 #include <cmath>
 
