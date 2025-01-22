@@ -1,10 +1,10 @@
 #include "Application.hpp"
 #include <random>
 
-#define DOWNSCALE_FACTOR    1
+#define DOWNSCALE_FACTOR    5
 
 Application::Application()
-    : m_spread(0.02F)
+    : m_spread(1.F)
 {
     sf::ContextSettings contextSettings;
     contextSettings.majorVersion = 4;
@@ -21,34 +21,14 @@ Application::Application()
     this->m_window.setVerticalSyncEnabled(true);
 
     srand(time(nullptr));
-    // for (size_t i = 0; i < 32; i++)
-    // {
-    //     for (size_t j = 0; j < 16; j++)
-    //     {
-    //         Particle newParticle;
-    //         newParticle.pos = sf::Vector2f(i*50, j*50);
-    //         // newParticle.radius = 10.F + 5.F*rand()/RAND_MAX;
-    //         // newParticle.color = sf::Color(rand()%255, rand()%255, rand()%255);
-    //         // newParticle.velocity = sf::Vector2f(0, 0);
-    //         this->m_particles.push_back(newParticle);
-    //     }
-    // }
-
-    // for (size_t i = 0; i < 32; i++)
-    // {
-    //     for (size_t j = 0; j < 16; j++)
-    //     {
-    //         this->m_particles[i*16 + j] = Particle{.pos=sf::Vector2f(i, j)};
-    //     }
-    // }
 
     glewInit();
     this->m_computeShader = compile_compute_shader_file("src/compute.glsl");
     set_uniform(this->m_computeShader, "windowSize", this->m_window.getSize());
-    this->pBuffer = set_buffer(this->m_computeShader, NULL, sizeof(float[512][2][2]), 1);
+    this->pBuffer = set_buffer(this->m_computeShader, NULL, sizeof(float[nbParticles][2][2]), 1);
 
     set_uniform(this->m_computeShader, "init", true);
-    execute_compute_shader(this->m_computeShader, 512, 1, 1);
+    execute_compute_shader(this->m_computeShader, nbParticles, 1, 1);
     set_uniform(this->m_computeShader, "init", false);
 }
 
@@ -76,8 +56,6 @@ bool Application::handle_inputs()
         {
         case sf::Event::EventType::Closed:
             return false;
-        // case sf::Event::LostFocus:
-        //     return false;
         
         case sf::Event::EventType::KeyPressed: {
             switch (event.key.code)
@@ -86,10 +64,20 @@ bool Application::handle_inputs()
                 return false;
             
             case sf::Keyboard::Up:
-                this->m_spread *= 1.5;
+                this->m_spread *= 1.2;
                 break;
             case sf::Keyboard::Down:
-                this->m_spread /= 1.5;
+                this->m_spread /= 1.2;
+                break;
+            case sf::Keyboard::R: {
+                float temp[nbParticles*2*2];
+                read_buffer(this->m_computeShader, temp, this->pBuffer, 0, sizeof(float[nbParticles][2][2]));
+                delete_compute_shader(this->m_computeShader);
+                this->m_computeShader = compile_compute_shader_file("src/compute.glsl");
+                this->pBuffer = set_buffer(this->m_computeShader, temp, sizeof(float[2][2][nbParticles]), 1);
+                set_uniform(this->m_computeShader, "windowSize", this->m_window.getSize());
+                set_uniform(this->m_computeShader, "init", false);
+            }
                 break;
 
             default:
@@ -114,9 +102,12 @@ bool Application::handle_inputs()
 
 void Application::update_particles(float deltaTime)
 {
+    set_uniform(this->m_computeShader, "mPos", static_cast<sf::Vector2f>(sf::Mouse::getPosition(this->m_window)));
+    set_uniform(this->m_computeShader, "mState", sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) ? 1 :
+                                                sf::Mouse::isButtonPressed(sf::Mouse::Button::Right) ? -1 : 0);
     set_uniform(this->m_computeShader, "deltaTime", deltaTime);
-    execute_compute_shader(this->m_computeShader, 512, 1, 1);
-    read_buffer(this->m_computeShader, this->m_particles, this->pBuffer, 0, sizeof(float[512][2]));
+    execute_compute_shader(this->m_computeShader, nbParticles, 1, 1);
+    read_buffer(this->m_computeShader, this->m_particles, this->pBuffer, 0, sizeof(float[nbParticles][2]));
 
 
     // sf::Vector2f winSize(this->m_window.getSize());
@@ -154,43 +145,10 @@ void Application::update_particles(float deltaTime)
     //         }
             
     //     }
-        
-
-
-    //     obj->pos += obj->velocity;
-        
-        
-    //     // bbox accounting for radius of the particle
-    //     if ((obj->pos.x < obj->radius) || (obj->pos.x > winSize.x - obj->radius))
-    //     {
-    //         clamp(obj->pos.x, obj->radius, winSize.x - obj->radius);
-    //         // obj->velocity.x = 2*obj->pos.x - obj->velocity.x;
-    //         obj->velocity.x *= -0.9;
-    //     }
-    //     if ((obj->pos.y < obj->radius) || (obj->pos.y > winSize.y - obj->radius))
-    //     {
-    //         clamp(obj->pos.y, obj->radius, winSize.y - obj->radius);
-    //         // obj->velocity.y = 2*obj->pos.y - obj->velocity.y;
-    //         obj->velocity.y *= -0.9;
-    //     }
-    // }
-    
 }
 
 void Application::Render()
 {
-    /**
-     * This Wrapper's reason of existence is the slight possibility
-     * that one day i want to render something other than the simple
-     * particles and i don't want to clog the whole thing and reduce
-     * readability. I apologize sincerely if you wholeheartedly read
-     * this particularly useless comment that i know even I won't
-     * read in the future.
-     * I am here once again to continue this rant. However this time
-     * it will take a bit of time to get to the actual matter since I
-     * don't know what i want to talk about. Bbbb
-     */
-
     this->m_window.clear();
 
     this->draw_particles();
@@ -218,14 +176,14 @@ void Application::draw_particles()
     quad.setPoint(2, sf::Vector2f(windowSize.x, windowSize.y));
     quad.setPoint(3, sf::Vector2f(0,            windowSize.y));
 
-    sf::Glsl::Vec2* positions = new sf::Glsl::Vec2[1024];
-    for (size_t i = 0; i < 512; i++)
+    sf::Glsl::Vec2* positions = new sf::Glsl::Vec2[nbParticles];
+    for (size_t i = 0; i < nbParticles; i++)
     {
         positions[i] = this->m_particles[i].pos / (float)DOWNSCALE_FACTOR;
     }
 
     this->m_fragShader.setUniform("spread", this->m_spread);
-    this->m_fragShader.setUniformArray("positions", positions, 512);
+    this->m_fragShader.setUniformArray("positions", positions, nbParticles);
     delete[] positions;
     this->m_fragShader.setUniform("u_resolution", sf::Glsl::Vec2(windowSize/(unsigned int)DOWNSCALE_FACTOR));
 
@@ -238,6 +196,4 @@ void Application::draw_particles()
 
 
     this->m_window.draw(quad);
-    // this->m_window.display();
-    
 }

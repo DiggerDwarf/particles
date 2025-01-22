@@ -4,7 +4,7 @@
 int main(int argc, char const *argv[])
 {
     Application app;
-
+    
     do {
         app.Render();
     } while (app.Update());

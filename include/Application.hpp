@@ -14,6 +14,7 @@
 #include <utility.hpp>
 
 #define UNIT_DISTANCE 20.F
+#define nbParticles 512
 
 typedef struct {
     sf::Vector2f    pos;
@@ -31,7 +32,7 @@ class Application
 private:
     sf::RenderWindow        m_window;
     // std::vector<Particle>   m_particles;
-    Particle                m_particles[512];
+    Particle                m_particles[nbParticles];
     sf::Clock               m_clock;
     // sf::Time                m_runtime;
     sf::Shader              m_fragShader;

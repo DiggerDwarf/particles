@@ -20,7 +20,7 @@ ComputeShader compile_compute_shader(const char *code)
         GLint errorLogSize = 0;
         glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &errorLogSize);
 
-        char* errorLog = new char[errorLogSize+1];
+        char errorLog[errorLogSize+1] = {};
 
         glGetShaderInfoLog(shaderId, errorLogSize, NULL, errorLog);
 
@@ -28,8 +28,6 @@ ComputeShader compile_compute_shader(const char *code)
 
         std::cerr << "Error while compiling compute shader [ compile_compute_shader ] :\n";
         std::cerr << errorLog << std::endl;
-
-        delete[] errorLog;
 
         std::exit(1);
     }
@@ -441,7 +439,6 @@ void read_buffer(ComputeShader &shader, void *target, unsigned int source, std::
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, source);
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, target);
 
-
 }
 
 void execute_compute_shader(const ComputeShader &shader, GLuint x, GLuint y, GLuint z)
@@ -467,9 +464,37 @@ void execute_compute_shader(const ComputeShader &shader, GLuint x, GLuint y, GLu
     GLenum errorCode = glGetError();
     if (errorCode != GL_NO_ERROR)
     {
-        std::cerr << "An error has occured while trying to run a compute shader." << std::endl;
-        glUseProgram(0);
-        std::exit(1);
+        std::cerr << "An error has occured while trying to run a compute shader : ";
+        switch (errorCode)
+        {
+        case GL_INVALID_ENUM:
+            std::cerr << "GL_INVALID_ENUM" << std::endl;
+            break;
+        case GL_INVALID_VALUE:
+            std::cerr << "GL_INVALID_VALUE" << std::endl;
+            break;
+        case GL_INVALID_OPERATION:
+            std::cerr << "GL_INVALID_ENUM" << std::endl;
+            break;
+        case GL_INVALID_FRAMEBUFFER_OPERATION:
+            std::cerr << "GL_INVALID_FRAMEBUFFER_OPERATION" << std::endl;
+            break;
+        case GL_OUT_OF_MEMORY:
+            std::cerr << "GL_OUT_OF_MEMORY" << std::endl;
+            break;
+        case GL_STACK_UNDERFLOW:
+            std::cerr << "GL_STACK_UNDERFLOW" << std::endl;
+            break;
+        case GL_STACK_OVERFLOW:
+            std::cerr << "GL_STACK_OVERFLOW" << std::endl;
+            break;
+        
+        default:
+            std::cerr << "unknown" << std::endl;
+            break;
+        }
+        // glUseProgram(0);
+        // std::exit(1);
     }
 
     std::map<GLint, GLuint>::const_iterator it = shader.m_textureUniformHandles.begin();
