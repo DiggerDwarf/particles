@@ -2,6 +2,7 @@
 #define Application_hpp_INCLUDED
 
 #include <vector>
+#include <array>
 #include <random>
 
 #include <SFML/Graphics.hpp>
@@ -14,11 +15,11 @@
 #include <utility.hpp>
 
 #define UNIT_DISTANCE 20.F
-#define nbParticles 512
+#define nbParticles 3000
 
 typedef struct {
     sf::Vector2f    pos;
-    // sf::Vector2f    velocity;
+    sf::Vector2f    velocity;
     // float           radius;
     // sf::Color       color;
     // float lifetime;
@@ -40,6 +41,8 @@ private:
     float                   m_spread;   // maybe remove later
     ComputeShader           m_computeShader;
     unsigned int            pBuffer;
+    std::array<sf::Vector2u, nbParticles>   firstThingy;
+    int            secondThingy[500];
     // sf::Font                m_font;
     // bool                    m_canUseFont;
 public:

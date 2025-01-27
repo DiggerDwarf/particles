@@ -1,10 +1,10 @@
 #include "Application.hpp"
 #include <random>
 
-#define DOWNSCALE_FACTOR    5
+#define DOWNSCALE_FACTOR    10
 
 Application::Application()
-    : m_spread(1.F)
+    : m_spread(.05F)
 {
     sf::ContextSettings contextSettings;
     contextSettings.majorVersion = 4;
@@ -102,12 +102,42 @@ bool Application::handle_inputs()
 
 void Application::update_particles(float deltaTime)
 {
+    // Calculate grid hash thingy
+    
+    for (unsigned int i = 0; i < nbParticles; i++)
+    {
+        // get grid pos
+        sf::Vector2i gridPos(this->m_particles[i].pos / 140.0F);
+        unsigned int hash = (((gridPos.x * 6101 + gridPos.y * 1999) % 500) + 500) % 500;
+        this->firstThingy[i] = sf::Vector2u(i, hash);
+    }
+
+    struct {
+        bool operator()(const sf::Vector2u a, const sf::Vector2u b) const { return a.y > b.y; }
+    } customLess;
+
+    std::sort(this->firstThingy.begin(), this->firstThingy.end(), customLess);
+
+    
+    for (int i = 0; i < 500; i++)
+    {
+        this->secondThingy[i] = -1;
+    }
+    
+    for (int i = nbParticles - 1; i >= 0; i--)
+    {
+        this->secondThingy[this->firstThingy[i].y] = i;
+    }
+    
+    set_uniform_array(this->m_computeShader, "spatial_ID_hash", &*this->firstThingy.begin(), nbParticles);
+    set_uniform_array_scalar(this->m_computeShader, "spatial_hashToSegmentStart", this->secondThingy, 500);
+
     set_uniform(this->m_computeShader, "mPos", static_cast<sf::Vector2f>(sf::Mouse::getPosition(this->m_window)));
     set_uniform(this->m_computeShader, "mState", sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) ? 1 :
                                                 sf::Mouse::isButtonPressed(sf::Mouse::Button::Right) ? -1 : 0);
     set_uniform(this->m_computeShader, "deltaTime", deltaTime);
     execute_compute_shader(this->m_computeShader, nbParticles, 1, 1);
-    read_buffer(this->m_computeShader, this->m_particles, this->pBuffer, 0, sizeof(float[nbParticles][2]));
+    read_buffer(this->m_computeShader, this->m_particles, this->pBuffer, 0, sizeof(float[nbParticles][2][2]));
 
 
     // sf::Vector2f winSize(this->m_window.getSize());
@@ -162,9 +192,9 @@ void Application::draw_particles()
     // // dot.setPointCount(10);
     // for (const Particle& obj : this->m_particles)
     // {
-    //     dot.setRadius(10);
+    //     dot.setRadius(20);
     //     dot.setFillColor(sf::Color::Blue);
-    //     dot.setPosition(obj.pos - sf::Vector2f(10, 10));
+    //     dot.setPosition(obj.pos - sf::Vector2f(20, 20));
     //     m_window.draw(dot);
     // }
 
