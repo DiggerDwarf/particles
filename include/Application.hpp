@@ -15,7 +15,7 @@
 #include <utility.hpp>
 
 #define UNIT_DISTANCE 20.F
-#define nbParticles 3000
+#define nbParticles 1000
 
 typedef struct {
     sf::Vector2f    pos;

@@ -5,7 +5,7 @@
 #define TWO_PI			6.283185307179586
 #define ONE_TWO_PI      0.159154943091895
 
-#define nbParticles 3000
+#define nbParticles 1000
 
 uniform vec2 positions[nbParticles];
 
@@ -26,6 +26,11 @@ float density(const vec2 origin, const vec2 pos) {
     return exp(-(rel.x*rel.x + rel.y*rel.y)/(2*spread*spread))*ONE_TWO_PI/(6*spread*spread);
     // const float t = clamp(1 - (length(rel)/scale), 0, 1);
     // return (scale * t * t);
+}
+
+float density_change(const vec2 origin, const vec2 pos) {
+    const vec2 rel = pos-origin;
+    return max(-2*min(length(rel), 1)/spread + 2,0);
 }
 
 void main() {

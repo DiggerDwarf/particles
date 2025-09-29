@@ -28,7 +28,7 @@ Application::Application()
     this->pBuffer = set_buffer(this->m_computeShader, NULL, sizeof(float[nbParticles][2][2]), 1);
 
     set_uniform(this->m_computeShader, "init", true);
-    execute_compute_shader(this->m_computeShader, nbParticles, 1, 1);
+    execute_compute_shader(this->m_computeShader, nbParticles/8, 1, 1);
     set_uniform(this->m_computeShader, "init", false);
 }
 
@@ -136,7 +136,7 @@ void Application::update_particles(float deltaTime)
     set_uniform(this->m_computeShader, "mState", sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) ? 1 :
                                                 sf::Mouse::isButtonPressed(sf::Mouse::Button::Right) ? -1 : 0);
     set_uniform(this->m_computeShader, "deltaTime", deltaTime);
-    execute_compute_shader(this->m_computeShader, nbParticles, 1, 1);
+    execute_compute_shader(this->m_computeShader, nbParticles/8, 1, 1);
     read_buffer(this->m_computeShader, this->m_particles, this->pBuffer, 0, sizeof(float[nbParticles][2][2]));
 
 
@@ -189,7 +189,7 @@ void Application::Render()
 void Application::draw_particles()
 {
     // sf::CircleShape dot;
-    // // dot.setPointCount(10);
+    // dot.setPointCount(3);
     // for (const Particle& obj : this->m_particles)
     // {
     //     dot.setRadius(20);
@@ -197,6 +197,8 @@ void Application::draw_particles()
     //     dot.setPosition(obj.pos - sf::Vector2f(20, 20));
     //     m_window.draw(dot);
     // }
+
+
 
     sf::Vector2u windowSize = this->m_window.getSize();
 
@@ -223,7 +225,6 @@ void Application::draw_particles()
     this->m_renderBuffer.display();
 
     quad.setTexture(&this->m_renderBuffer.getTexture(), true);
-
-
+    
     this->m_window.draw(quad);
 }
